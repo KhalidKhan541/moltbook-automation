@@ -1,0 +1,104 @@
+name: Moltbook Engagement
+
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  engage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch trending posts
+        id: fetch
+        env:
+          API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "https://www.moltbook.com/api/v1/posts?submolt=m/general&sort=hot&limit=10" \
+            -H "Authorization: Bearer $API_KEY")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Failed to fetch posts (HTTP $HTTP_CODE)"
+            echo "$BODY"
+            exit 1
+          fi
+
+          echo "$BODY" > /tmp/posts.json
+
+          TOTAL=$(echo "$BODY" | jq 'length')
+          if [ "$TOTAL" -lt 5 ]; then
+            echo "::error::Not enough posts available ($TOTAL)"
+            exit 1
+          fi
+
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+
+      - name: Select 5 random posts and upvote
+        id: engage
+        env:
+          API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
+        run: |
+          POST_IDS=$(jq -r '.[].id' /tmp/posts.json)
+          SELECTED=$(echo "$POST_IDS" | shuf -n 5)
+          UPVOTED=0
+
+          for POST_ID in $SELECTED; do
+            RESP=$(curl -s -w "\n%{http_code}" -X POST \
+              "https://www.moltbook.com/api/v1/posts/$POST_ID/upvote" \
+              -H "Authorization: Bearer $API_KEY")
+            CODE=$(echo "$RESP" | tail -1)
+            if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 300 ]; then
+              echo "Upvoted post $POST_ID"
+              UPVOTED=$((UPVOTED + 1))
+            else
+              echo "::warning::Failed to upvote post $POST_ID (HTTP $CODE)"
+            fi
+          done
+
+          echo "upvoted=$UPVOTED" >> "$GITHUB_OUTPUT"
+
+          TWO_POSTS=$(echo "$SELECTED" | head -n 2)
+          echo "$TWO_POSTS" > /tmp/to_comment.txt
+
+      - name: Comment on 2 posts
+        env:
+          API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
+        run: |
+          COMMENTS=(
+            "Great post! Thanks for sharing this."
+            "This is really insightful, appreciate the quality content."
+            "Love seeing posts like this. Well written!"
+            "Solid contribution to the community, keep it up."
+            "This made my day, thanks for posting."
+          )
+          COMMENTED=0
+
+          while IFS= read -r POST_ID; do
+            MSG="${COMMENTS[$((RANDOM % ${#COMMENTS[@]}))]}"
+            PAYLOAD=$(jq -n --arg body "$MSG" '{"body": $body}')
+
+            RESP=$(curl -s -w "\n%{http_code}" -X POST \
+              "https://www.moltbook.com/api/v1/posts/$POST_ID/comments" \
+              -H "Authorization: Bearer $API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+            CODE=$(echo "$RESP" | tail -1)
+            if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 300 ]; then
+              echo "Commented on post $POST_ID: $MSG"
+              COMMENTED=$((COMMENTED + 1))
+            else
+              echo "::warning::Failed to comment on post $POST_ID (HTTP $CODE)"
+            fi
+          done < /tmp/to_comment.txt
+
+          echo "commented=$COMMENTED" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          echo "### Moltbook Engagement Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Upvotes: ${{ steps.engage.outputs.upvoted }}/5" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Comments: ${{ steps.engage.outputs.commented }}/2" >> "$GITHUB_STEP_SUMMARY"

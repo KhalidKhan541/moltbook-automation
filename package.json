@@ -1,0 +1,21 @@
+{
+  "name": "moltbook-automation",
+  "version": "1.0.0",
+  "description": "GitHub Actions automation for Moltbook promotional posts",
+  "type": "module",
+  "scripts": {
+    "post": "node scripts/post.js",
+    "schedule": "node scripts/schedule.js",
+    "test": "node scripts/test-api.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "moltbook",
+    "automation",
+    "github-actions"
+  ],
+  "license": "MIT"
+}

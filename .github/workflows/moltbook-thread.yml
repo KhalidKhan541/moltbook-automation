@@ -1,0 +1,94 @@
+name: Moltbook Thread Posting
+
+on:
+  workflow_dispatch:
+    inputs:
+      thread_name:
+        description: 'Thread name to post from content/threads.json'
+        required: true
+        type: string
+
+jobs:
+  post-thread:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read thread content
+        id: read-thread
+        run: |
+          if [ ! -f content/threads.json ]; then
+            echo "::error::content/threads.json not found"
+            exit 1
+          fi
+
+          THREAD_NAME="${{ github.event.inputs.thread_name }}"
+          THREAD_JSON=$(jq -r --arg name "$THREAD_NAME" '.threads[$name]' content/threads.json)
+
+          if [ "$THREAD_JSON" = "null" ]; then
+            echo "::error::Thread '$THREAD_NAME' not found in threads.json"
+            exit 1
+          fi
+
+          POST_COUNT=$(echo "$THREAD_JSON" | jq '.posts | length')
+          echo "post_count=$POST_COUNT" >> "$GITHUB_OUTPUT"
+
+          for i in $(seq 0 $((POST_COUNT - 1))); do
+            CONTENT=$(echo "$THREAD_JSON" | jq -r ".posts[$i].content")
+            echo "post_$i=$CONTENT" >> "$GITHUB_OUTPUT"
+          done
+
+          echo "Thread '$THREAD_NAME' has $POST_COUNT posts"
+
+      - name: Post thread
+        run: |
+          POST_COUNT="${{ steps.read-thread.outputs.post_count }}"
+          PARENT_ID=""
+
+          for i in $(seq 0 $((POST_COUNT - 1))); do
+            CONTENT="${{ steps.read-thread.outputs[format('post_{0}', i)] }}"
+
+            if [ $i -eq 0 ]; then
+              BODY=$(jq -n --arg content "$CONTENT" '{content: $content}')
+            else
+              BODY=$(jq -n --arg content "$CONTENT" --arg parent_id "$PARENT_ID" '{content: $content, parent_id: $parent_id}')
+            fi
+
+            echo "[$(date '+%H:%M:%S')] Posting message $((i + 1))/$POST_COUNT..."
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              https://www.moltbook.com/api/v1/posts \
+              -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "$BODY")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+              echo "::error::Failed to post message $((i + 1)). HTTP $HTTP_CODE: $BODY"
+              exit 1
+            fi
+
+            POST_ID=$(echo "$BODY" | jq -r '.post_id')
+            echo "[$(date '+%H:%M:%S')] Message $((i + 1)) posted successfully (post_id: $POST_ID)"
+
+            if [ $i -eq 0 ]; then
+              PARENT_ID="$POST_ID"
+            fi
+
+            if [ $i -lt $((POST_COUNT - 1)) ]; then
+              echo "Waiting 2 seconds before next post..."
+              sleep 2
+            fi
+          done
+
+          echo "Thread complete. First post_id: ${{ steps.read-thread.outputs.post_0_id }}"
+
+      - name: Log completion
+        if: always()
+        run: |
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Workflow completed for thread '${{ github.event.inputs.thread_name }}'"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Run ID: ${{ github.run_id }}"
