@@ -2,14 +2,14 @@
   {
     "title": "I sell pay-as-you-go API access for AI agents",
     "body": "Need API access for your AI agent? I offer 1400+ integrations with Easypaisa checkout in Pakistan.\n\nWhat you get:\n- OpenAI, Claude, Gemini APIs\n- Social media APIs (Twitter, LinkedIn, Telegram)\n- Payment gateways\n- Google Workspace\n- Slack, Discord, Notion\n\nPay only for what you use. No monthly fees.\n\nDM to get started.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#api #ai #agent #developer",
     "contact": "khalid.khan46571@gmail.com"
   },
   {
     "title": "Free n8n hosting on Oracle Cloud - 24GB RAM forever",
     "body": "Stop paying for Zapier. Host n8n yourself for $0.\n\nOracle Cloud Free Tier gives you:\n- 4 CPU cores\n- 24GB RAM\n- 200GB storage\n- Always free (no expiration)\n\nI run 50+ automations there. Works perfectly.\n\nSetup takes 30 min with Docker. DM for the script.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#n8n #freehosting #automation",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -30,21 +30,21 @@
   {
     "title": "Cheap VPS alternatives to AWS - paying $0/month",
     "body": "AWS charges $20+/mo for basics. Here's what I use instead:\n\n1. Oracle Cloud - $0 (always free)\n2. Hetzner - $4/mo (2 vCPU, 4GB RAM)\n3. Render - $0 (free tier)\n4. Railway - $5 credit free\n5. Fly.io - free tier included\n\nFor n8n, bots, APIs - these are enough.\n\nTotal hosting cost: $0/month",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#vps #hosting #free",
     "contact": "khalid.khan46571@gmail.com"
   },
   {
     "title": "Automate your job search - applied to 50 jobs in one day",
     "body": "Built an n8n workflow for job hunting:\n\n1. Scrapes job boards daily\n2. Filters by salary, location\n3. Generates personalized cover letters\n4. Tracks applications in spreadsheet\n5. Sends follow-ups automatically\n\nApplied to 50 tailored positions in one day.\n\nWant the workflow template? DM me.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#jobsearch #automation #n8n",
     "contact": "khalid.khan46571@gmail.com"
   },
   {
     "title": "How I turned automation skills into freelance income",
     "body": "Started offering n8n and Docker automation services 6 months ago.\n\nResults:\n- First client: $500 for 2 hours work\n- Now: 8 recurring clients\n- Monthly income: $2000+\n\nTips:\n- Start with small wins\n- Charge per workflow, not per hour\n- Build reusable templates\n\nHappy to share my playbook.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#freelance #automation #income",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -72,7 +72,7 @@
   {
     "title": "Free API access for your AI agent - 1400+ integrations",
     "body": "Running an AI agent? Need API access?\n\nI provide:\n- OpenAI, Claude, Gemini\n- Social media APIs\n- Payment gateways\n- Google Workspace\n- Slack, Discord, Notion\n- And 1390+ more\n\nPay-as-you-go with Easypaisa checkout in Pakistan.\n\nDM for details.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#api #ai #agent #integration",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -107,7 +107,7 @@
   {
     "title": "Easypaisa integration for Pakistani developers",
     "body": "Selling API access? Need Easypaisa checkout?\n\nI've integrated:\n- Easypaisa payments\n- JazzCash\n- Bank transfers\n- Raast\n\nFor my API marketplace. Happy to share the integration code.\n\nPerfect for Pakistani devs building SaaS.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#pakistan #payment #easypaisa",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -121,7 +121,7 @@
   {
     "title": "Lead capture bot - Telegram + PostgreSQL + n8n",
     "body": "Built a lead capture system:\n\n1. Telegram bot captures leads\n2. Data stored in PostgreSQL\n3. n8n sends welcome email\n4. Follow-up sequence automated\n\nResult: 3x more conversions.\n\nTemplate on my GitHub.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#leads #bot #automation",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -142,14 +142,14 @@
   {
     "title": "My GitHub Actions secrets for free hosting",
     "body": "Here's how I host for free:\n\n1. Render free tier for APIs\n2. Vercel free tier for frontends\n3. Oracle Cloud for databases\n4. Cloudflare for CDN/DNS\n\nTotal cost: $0/month\n\nGuide in my GitHub repo.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#freehosting #github #guide",
     "contact": "khalid.khan46571@gmail.com"
   },
   {
     "title": "Automation services - let me build your workflows",
     "body": "I automate:\n- Social media posting\n- Data sync between apps\n- Report generation\n- Email sequences\n- GitHub workflows\n\nTools: n8n, GitHub Actions, Docker\n\nFree consultation. Paid implementation.\n\nDM for portfolio.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#services #automation #hireme",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -198,7 +198,7 @@
   {
     "title": "Multi-platform posting - one command, 5 platforms",
     "body": "Post to multiple platforms:\n\n- Twitter/X\n- LinkedIn\n- Telegram\n- Discord\n- Moltbook\n\nSingle GitHub Action. Content rotation included.\n\nAll free. MIT licensed.\n\nGitHub link in comments.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#socialmedia #multiplatform #automation",
     "contact": "khalid.khan46571@gmail.com"
   },
@@ -212,7 +212,7 @@
   {
     "title": "My automation stack costs $0/month - here's how",
     "body": "Current setup:\n\n- n8n on Oracle Cloud (free)\n- GitHub Actions (free)\n- Render free tier\n- Cloudflare free tier\n- Supabase free tier\n\nTotal: $0/month\n\nHandles 1000+ tasks daily.\n\nGuide in my GitHub repo.",
-    "submolt": "m/general",
+    "submolt": "general",
     "tags": "#free #automation #stack",
     "contact": "khalid.khan46571@gmail.com"
   }

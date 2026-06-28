@@ -18,7 +18,7 @@ jobs:
           API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            "https://www.moltbook.com/api/v1/posts?submolt=m/general&sort=hot&limit=10" \
+            "https://www.moltbook.com/api/v1/posts?submolt=general&sort=hot&limit=10" \
             -H "Authorization: Bearer $API_KEY")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n -1)

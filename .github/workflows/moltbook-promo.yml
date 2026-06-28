@@ -40,7 +40,7 @@ jobs:
 
           TITLE=$(jq -r ".[$INDEX].title" content/promo-posts.json)
           BODY=$(jq -r ".[$INDEX].body" content/promo-posts.json)
-          SUBMOLT=$(jq -r ".[$INDEX].submolt // \"m/general\"" content/promo-posts.json)
+          SUBMOLT=$(jq -r ".[$INDEX].submolt // \"general\"" content/promo-posts.json)
 
           if [ -n "$INPUT_SUBMOLT" ]; then
             SUBMOLT="$INPUT_SUBMOLT"
