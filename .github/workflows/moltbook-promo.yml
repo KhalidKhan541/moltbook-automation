@@ -48,8 +48,8 @@ jobs:
 
           FULL_BODY=$(printf "%s\n\nContact: khalid.khan46571@gmail.com" "$BODY")
 
-          jq -n --arg title "$TITLE" --arg body "$FULL_BODY" --arg submolt "$SUBMOLT" \
-            '{title: $title, body: $body, submolt: $submolt}' > /tmp/payload.json
+          jq -n --arg title "$TITLE" --arg content "$FULL_BODY" --arg submolt "$SUBMOLT" \
+            '{title: $title, content: $content, submolt: $submolt}' > /tmp/payload.json
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://www.moltbook.com/api/v1/posts" \
