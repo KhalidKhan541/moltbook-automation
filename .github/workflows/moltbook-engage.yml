@@ -5,6 +5,9 @@ on:
     - cron: '0 14 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   engage:
     runs-on: ubuntu-latest
@@ -17,8 +20,8 @@ jobs:
           RESPONSE=$(curl -s -w "\n%{http_code}" \
             "https://www.moltbook.com/api/v1/posts?submolt=m/general&sort=hot&limit=10" \
             -H "Authorization: Bearer $API_KEY")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
 
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
             echo "::error::Failed to fetch posts (HTTP $HTTP_CODE)"
@@ -29,27 +32,33 @@ jobs:
           echo "$BODY" > /tmp/posts.json
 
           TOTAL=$(echo "$BODY" | jq 'length')
-          if [ "$TOTAL" -lt 5 ]; then
-            echo "::error::Not enough posts available ($TOTAL)"
-            exit 1
-          fi
-
           echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
 
-      - name: Select 5 random posts and upvote
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "No posts available, skipping engagement"
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+
+      - name: Upvote posts
         id: engage
+        if: steps.fetch.outputs.skipped == 'false'
         env:
           API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
         run: |
+          TOTAL=${{ steps.fetch.outputs.total }}
+          UPVOTE_COUNT=$((TOTAL < 5 ? TOTAL : 5))
           POST_IDS=$(jq -r '.[].id' /tmp/posts.json)
-          SELECTED=$(echo "$POST_IDS" | shuf -n 5)
+          SELECTED=$(echo "$POST_IDS" | shuf -n "$UPVOTE_COUNT")
           UPVOTED=0
 
           for POST_ID in $SELECTED; do
             RESP=$(curl -s -w "\n%{http_code}" -X POST \
               "https://www.moltbook.com/api/v1/posts/$POST_ID/upvote" \
               -H "Authorization: Bearer $API_KEY")
-            CODE=$(echo "$RESP" | tail -1)
+            CODE=$(echo "$RESP" | tail -n1)
             if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 300 ]; then
               echo "Upvoted post $POST_ID"
               UPVOTED=$((UPVOTED + 1))
@@ -60,10 +69,12 @@ jobs:
 
           echo "upvoted=$UPVOTED" >> "$GITHUB_OUTPUT"
 
-          TWO_POSTS=$(echo "$SELECTED" | head -n 2)
+          COMMENT_COUNT=$((TOTAL < 2 ? TOTAL : 2))
+          TWO_POSTS=$(echo "$SELECTED" | head -n "$COMMENT_COUNT")
           echo "$TWO_POSTS" > /tmp/to_comment.txt
 
-      - name: Comment on 2 posts
+      - name: Comment on posts
+        if: steps.fetch.outputs.skipped == 'false'
         env:
           API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
         run: |
@@ -77,6 +88,7 @@ jobs:
           COMMENTED=0
 
           while IFS= read -r POST_ID; do
+            [ -z "$POST_ID" ] && continue
             MSG="${COMMENTS[$((RANDOM % ${#COMMENTS[@]}))]}"
             PAYLOAD=$(jq -n --arg body "$MSG" '{"body": $body}')
 
@@ -85,7 +97,7 @@ jobs:
               -H "Authorization: Bearer $API_KEY" \
               -H "Content-Type: application/json" \
               -d "$PAYLOAD")
-            CODE=$(echo "$RESP" | tail -1)
+            CODE=$(echo "$RESP" | tail -n1)
             if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 300 ]; then
               echo "Commented on post $POST_ID: $MSG"
               COMMENTED=$((COMMENTED + 1))
@@ -97,8 +109,19 @@ jobs:
           echo "commented=$COMMENTED" >> "$GITHUB_OUTPUT"
 
       - name: Summary
+        if: always()
+        env:
+          TOTAL: ${{ steps.fetch.outputs.total }}
+          SKIPPED: ${{ steps.fetch.outputs.skipped }}
+          UPVOTED: ${{ steps.engage.outputs.upvoted }}
+          COMMENTED: ${{ steps.engage.outputs.commented }}
         run: |
           echo "### Moltbook Engagement Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Upvotes: ${{ steps.engage.outputs.upvoted }}/5" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Comments: ${{ steps.engage.outputs.commented }}/2" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SKIPPED" = "true" ]; then
+            echo "Skipped - no posts available" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Posts found: $TOTAL" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Upvotes: ${UPVOTED:-0}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Comments: ${COMMENTED:-0}" >> "$GITHUB_STEP_SUMMARY"
+          fi

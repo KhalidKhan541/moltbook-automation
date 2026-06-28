@@ -8,6 +8,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   post-thread:
     runs-on: ubuntu-latest
@@ -15,15 +18,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Read thread content
-        id: read-thread
+      - name: Post thread
+        id: post
+        env:
+          API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
+          THREAD_NAME: ${{ github.event.inputs.thread_name }}
         run: |
           if [ ! -f content/threads.json ]; then
             echo "::error::content/threads.json not found"
             exit 1
           fi
 
-          THREAD_NAME="${{ github.event.inputs.thread_name }}"
           THREAD_JSON=$(jq -r --arg name "$THREAD_NAME" '.threads[$name]' content/threads.json)
 
           if [ "$THREAD_JSON" = "null" ]; then
@@ -32,22 +37,10 @@ jobs:
           fi
 
           POST_COUNT=$(echo "$THREAD_JSON" | jq '.posts | length')
-          echo "post_count=$POST_COUNT" >> "$GITHUB_OUTPUT"
-
-          for i in $(seq 0 $((POST_COUNT - 1))); do
-            CONTENT=$(echo "$THREAD_JSON" | jq -r ".posts[$i].content")
-            echo "post_$i=$CONTENT" >> "$GITHUB_OUTPUT"
-          done
-
-          echo "Thread '$THREAD_NAME' has $POST_COUNT posts"
-
-      - name: Post thread
-        run: |
-          POST_COUNT="${{ steps.read-thread.outputs.post_count }}"
           PARENT_ID=""
 
           for i in $(seq 0 $((POST_COUNT - 1))); do
-            CONTENT="${{ steps.read-thread.outputs[format('post_{0}', i)] }}"
+            CONTENT=$(echo "$THREAD_JSON" | jq -r ".posts[$i].content")
 
             if [ $i -eq 0 ]; then
               BODY=$(jq -n --arg content "$CONTENT" '{content: $content}')
@@ -59,36 +52,41 @@ jobs:
 
             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
               https://www.moltbook.com/api/v1/posts \
-              -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}" \
+              -H "Authorization: Bearer $API_KEY" \
               -H "Content-Type: application/json" \
               -d "$BODY")
 
-            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-            BODY=$(echo "$RESPONSE" | sed '$d')
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            RESP_BODY=$(echo "$RESPONSE" | head -n -1)
 
             if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-              echo "::error::Failed to post message $((i + 1)). HTTP $HTTP_CODE: $BODY"
+              echo "::error::Failed to post message $((i + 1)). HTTP $HTTP_CODE: $RESP_BODY"
               exit 1
             fi
 
-            POST_ID=$(echo "$BODY" | jq -r '.post_id')
-            echo "[$(date '+%H:%M:%S')] Message $((i + 1)) posted successfully (post_id: $POST_ID)"
+            POST_ID=$(echo "$RESP_BODY" | jq -r '.post_id')
+            echo "[$(date '+%H:%M:%S')] Message $((i + 1)) posted (post_id: $POST_ID)"
 
             if [ $i -eq 0 ]; then
               PARENT_ID="$POST_ID"
             fi
 
             if [ $i -lt $((POST_COUNT - 1)) ]; then
-              echo "Waiting 2 seconds before next post..."
               sleep 2
             fi
           done
 
-          echo "Thread complete. First post_id: ${{ steps.read-thread.outputs.post_0_id }}"
+          echo "posted=true" >> "$GITHUB_OUTPUT"
+          echo "count=$POST_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Log completion
         if: always()
+        env:
+          THREAD_NAME: ${{ github.event.inputs.thread_name }}
+          POSTED: ${{ steps.post.outputs.posted }}
+          COUNT: ${{ steps.post.outputs.count }}
         run: |
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Workflow completed for thread '${{ github.event.inputs.thread_name }}'"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Run ID: ${{ github.run_id }}"
+          echo "### Thread Post Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Thread:** $THREAD_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Status:** ${POSTED:-failed}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Posts:** ${COUNT:-0}" >> "$GITHUB_STEP_SUMMARY"

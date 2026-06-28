@@ -2,16 +2,19 @@ name: Moltbook Promo Posts
 
 on:
   schedule:
-    - cron: '0 8 * * *'    # Daily at 8 AM UTC
-    - cron: '0 12 * * *'   # Daily at 12 PM UTC
-    - cron: '0 18 * * *'   # Daily at 6 PM UTC
-    - cron: '0 22 * * *'   # Daily at 10 PM UTC
+    - cron: '0 8 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+    - cron: '0 22 * * *'
   workflow_dispatch:
     inputs:
       submolt:
         description: 'Submolt to post to'
         required: false
         default: 'm/general'
+
+permissions:
+  contents: read
 
 jobs:
   post:
@@ -24,43 +27,37 @@ jobs:
         id: post
         env:
           API_KEY: ${{ secrets.MOLTBOOK_API_KEY }}
+          INPUT_SUBMOLT: ${{ github.event.inputs.submolt }}
         run: |
-          # Get total posts and rotate based on hour
           TOTAL=$(jq length content/promo-posts.json)
           HOUR=$(date -u +%H)
           DAY=$(date -u +%d)
-          # Combine day and hour for better rotation
           INDEX=$(( (DAY * 4 + HOUR / 6) % TOTAL ))
-          
-          # Extract post data
+
           TITLE=$(jq -r ".[$INDEX].title" content/promo-posts.json)
           BODY=$(jq -r ".[$INDEX].body" content/promo-posts.json)
           SUBMOLT=$(jq -r ".[$INDEX].submolt // \"m/general\"" content/promo-posts.json)
-          
-          # Use input submolt if provided
-          if [ -n "${{ github.event.inputs.submolt }}" ]; then
-            SUBMOLT="${{ github.event.inputs.submolt }}"
+
+          if [ -n "$INPUT_SUBMOLT" ]; then
+            SUBMOLT="$INPUT_SUBMOLT"
           fi
-          
-          # Build full body with contact
+
           FULL_BODY="${BODY}
 
 Contact: khalid.khan46571@gmail.com"
-          
-          # Create JSON payload using jq for proper escaping
+
           jq -n --arg title "$TITLE" --arg body "$FULL_BODY" --arg submolt "$SUBMOLT" \
             '{title: $title, body: $body, submolt: $submolt}' > /tmp/payload.json
-          
-          # Post to Moltbook
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://www.moltbook.com/api/v1/posts" \
             -H "Authorization: Bearer $API_KEY" \
             -H "Content-Type: application/json" \
             -d @/tmp/payload.json)
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          RESPONSE_BODY=$(echo "$RESPONSE" | head -n-1)
-          
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "posted=true" >> "$GITHUB_OUTPUT"
             echo "title=$TITLE" >> "$GITHUB_OUTPUT"
@@ -70,7 +67,6 @@ Contact: khalid.khan46571@gmail.com"
             echo "posted=false" >> "$GITHUB_OUTPUT"
             echo "FAILED: HTTP $HTTP_CODE"
             echo "$RESPONSE_BODY"
-            # Don't exit on rate limit, just log
             if [ "$HTTP_CODE" = "429" ]; then
               echo "Rate limited - will retry next schedule"
             fi
@@ -78,9 +74,13 @@ Contact: khalid.khan46571@gmail.com"
 
       - name: Log result
         if: always()
+        env:
+          POST_TITLE: ${{ steps.post.outputs.title }}
+          POST_SUBMOLT: ${{ steps.post.outputs.submolt }}
+          POST_STATUS: ${{ steps.post.outputs.posted }}
         run: |
           echo "## Moltbook Post Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Title:** ${{ steps.post.outputs.title }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Submolt:** ${{ steps.post.outputs.submolt }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ steps.post.outputs.posted }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Title:** $POST_TITLE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Submolt:** $POST_SUBMOLT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** $POST_STATUS" >> $GITHUB_STEP_SUMMARY
           echo "- **Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
