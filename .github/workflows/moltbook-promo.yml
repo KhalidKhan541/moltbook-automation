@@ -1,6 +1,10 @@
 name: Moltbook Promo Posts
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/moltbook-promo.yml'
   schedule:
     - cron: '0 8 * * *'
     - cron: '0 12 * * *'
