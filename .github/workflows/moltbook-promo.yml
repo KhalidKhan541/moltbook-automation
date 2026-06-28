@@ -46,9 +46,7 @@ jobs:
             SUBMOLT="$INPUT_SUBMOLT"
           fi
 
-          FULL_BODY="${BODY}
-
-Contact: khalid.khan46571@gmail.com"
+          FULL_BODY=$(printf "%s\n\nContact: khalid.khan46571@gmail.com" "$BODY")
 
           jq -n --arg title "$TITLE" --arg body "$FULL_BODY" --arg submolt "$SUBMOLT" \
             '{title: $title, body: $body, submolt: $submolt}' > /tmp/payload.json
